@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏场 - 游戏管理中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .game-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-running {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-stopped {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status-starting {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .game-description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .game-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .game-actions .btn {
+            flex: 1;
+            min-width: 80px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            transform: translateX(-400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #4CAF50;
+        }
+
+        .notification.error {
+            background: #f44336;
+        }
+
+        .notification.info {
+            background: #2196F3;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .game-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="http://124.221.145.212:35000/static/css/login_control.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 游戏场</h1>
+            <p>游戏管理中心 - 选择并管理您的游戏</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="startAllGames()">🚀 启动所有游戏</button>
+            <button class="btn btn-danger" onclick="stopAllGames()">⏹️ 停止所有游戏</button>
+            <button class="btn btn-warning" onclick="refreshStatus()">🔄 刷新状态</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在处理请求...</p>
+        </div>
+
+        <div class="games-grid" id="gamesGrid">
+            <!-- 游戏卡片将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        let games = {{ games | tojson | safe }};
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function updateGameCard(gameId, game) {
+            const card = document.querySelector(`[data-game-id="${gameId}"]`);
+            if (card) {
+                const statusBadge = card.querySelector('.status-badge');
+                const playBtn = card.querySelector('.play-btn');
+                const startBtn = card.querySelector('.start-btn');
+                const stopBtn = card.querySelector('.stop-btn');
+                const restartBtn = card.querySelector('.restart-btn');
+
+                statusBadge.className = `status-badge status-${game.status}`;
+                statusBadge.textContent = game.status;
+
+                playBtn.disabled = game.status !== 'running';
+                startBtn.disabled = game.status === 'running' || game.status === 'starting';
+                stopBtn.disabled = game.status !== 'running';
+                restartBtn.disabled = game.status === 'starting';
+            }
+        }
+
+        function renderGames() {
+            const grid = document.getElementById('gamesGrid');
+            grid.innerHTML = '';
+
+            Object.entries(games).forEach(([gameId, game]) => {
+                const card = document.createElement('div');
+                card.className = 'game-card';
+                card.setAttribute('data-game-id', gameId);
+
+                card.innerHTML = `
+                    <div class="game-header">
+                        <h3 class="game-title">${game.name}</h3>
+                        <span class="status-badge status-${game.status}">${game.status}</span>
+                    </div>
+                    <p class="game-description">${game.description}</p>
+                    <div class="game-actions">
+                        <button class="btn btn-primary play-btn" onclick="playGame('${gameId}')" ${game.status !== 'running' ? 'disabled' : ''}>
+                            🎮 开始游戏
+                        </button>
+                        <button class="btn btn-primary start-btn" onclick="startGame('${gameId}')" ${game.status === 'running' || game.status === 'starting' ? 'disabled' : ''}>
+                            ▶️ 启动
+                        </button>
+                        <button class="btn btn-danger stop-btn" onclick="stopGame('${gameId}')" ${game.status !== 'running' ? 'disabled' : ''}>
+                            ⏹️ 停止
+                        </button>
+                        <button class="btn btn-warning restart-btn" onclick="restartGame('${gameId}')" ${game.status === 'starting' ? 'disabled' : ''}>
+                            🔄 重启
+                        </button>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        async function startGame(gameId) {
+            showLoading(true);
+            try {
+                const response = await fetch(`/api/games/${gameId}/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    games[gameId].status = result.status;
+                    updateGameCard(gameId, games[gameId]);
+                    showNotification(result.message, 'success');
+                    
+                    // 如果状态是starting，轮询检查状态
+                    if (result.status === 'starting') {
+                        setTimeout(() => checkGameStatus(gameId), 3000);
+                    }
+                } else {
+                    showNotification(result.error, 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function stopGame(gameId) {
+            showLoading(true);
+            try {
+                const response = await fetch(`/api/games/${gameId}/stop`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    games[gameId].status = result.status;
+                    updateGameCard(gameId, games[gameId]);
+                    showNotification(result.message, 'success');
+                } else {
+                    showNotification(result.error, 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function restartGame(gameId) {
+            showLoading(true);
+            try {
+                const response = await fetch(`/api/games/${gameId}/restart`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    games[gameId].status = result.status;
+                    updateGameCard(gameId, games[gameId]);
+                    showNotification(result.message, 'success');
+                    
+                    if (result.status === 'starting') {
+                        setTimeout(() => checkGameStatus(gameId), 3000);
+                    }
+                } else {
+                    showNotification(result.error, 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function playGame(gameId) {
+            // 获取当前url中的token参数
+            const url = new URL(window.location.href);
+            const token = url.searchParams.get('token');
+            let playUrl = `/play/${gameId}`;
+            if (token) {
+                playUrl += `?token=${encodeURIComponent(token)}`;
+            }
+            window.open(playUrl, '_blank');
+        }
+
+        async function startAllGames() {
+            showLoading(true);
+            try {
+                const response = await fetch('/api/start_all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const results = await response.json();
+                
+                let successCount = 0;
+                let errorCount = 0;
+                
+                Object.entries(results).forEach(([gameId, result]) => {
+                    if (result.success) {
+                        games[gameId].status = 'starting';
+                        updateGameCard(gameId, games[gameId]);
+                        successCount++;
+                        
+                        setTimeout(() => checkGameStatus(gameId), 3000);
+                    } else {
+                        errorCount++;
+                    }
+                });
+                
+                if (successCount > 0) {
+                    showNotification(`成功启动 ${successCount} 个游戏`, 'success');
+                }
+                if (errorCount > 0) {
+                    showNotification(`${errorCount} 个游戏启动失败`, 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function stopAllGames() {
+            showLoading(true);
+            try {
+                const response = await fetch('/api/stop_all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const results = await response.json();
+                
+                let successCount = 0;
+                let errorCount = 0;
+                
+                Object.entries(results).forEach(([gameId, result]) => {
+                    if (result.success) {
+                        games[gameId].status = 'stopped';
+                        updateGameCard(gameId, games[gameId]);
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                });
+                
+                if (successCount > 0) {
+                    showNotification(`成功停止 ${successCount} 个游戏`, 'success');
+                }
+                if (errorCount > 0) {
+                    showNotification(`${errorCount} 个游戏停止失败`, 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function refreshStatus() {
+            showLoading(true);
+            try {
+                const response = await fetch('/api/games');
+                const updatedGames = await response.json();
+                
+                Object.entries(updatedGames).forEach(([gameId, game]) => {
+                    games[gameId].status = game.status;
+                    updateGameCard(gameId, games[gameId]);
+                });
+                
+                showNotification('状态已刷新', 'info');
+            } catch (error) {
+                showNotification('刷新失败', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function checkGameStatus(gameId) {
+            try {
+                const response = await fetch('/api/games');
+                const updatedGames = await response.json();
+                
+                if (updatedGames[gameId]) {
+                    games[gameId].status = updatedGames[gameId].status;
+                    updateGameCard(gameId, games[gameId]);
+                    
+                    // 如果还在starting状态，继续轮询
+                    if (updatedGames[gameId].status === 'starting') {
+                        setTimeout(() => checkGameStatus(gameId), 2000);
+                    }
+                }
+            } catch (error) {
+                console.error('检查游戏状态失败:', error);
+            }
+        }
+
+        // 页面加载时渲染游戏
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGames();
+        });
+    </script>
+    <script src="http://124.221.145.212:35000/static/js/login_control.js"></script>
+</body>
+</html> 
